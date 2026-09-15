@@ -1,23 +1,26 @@
-"""Computes how many inquiries are currently waiting on each admin, and the
-auto status (GREEN/YELLOW/RED) that follows from it, for the admin-selection
-screen.
+"""Computes how many conversations are currently waiting on each admin, and
+the auto status (GREEN/YELLOW/RED) that follows from it, for the admin
+selection screen and sidebar.
 
-"Waiting" means the admin still owes the employee a reply: the inquiry is
-not deleted, not closed, and not yet answered (status WAITING or READ --
-READ just means the admin opened it, it does not mean they replied).
+Per spec section 12, an admin's waiting count is:
+    admin_id = X AND is_deleted = false AND status != CLOSED
+    AND waiting_for = ADMIN
+
+`waiting_for` only flips to EMPLOYEE when the admin actually replies --
+merely opening/reading a conversation does not clear it, so a read-but-
+not-yet-answered conversation still counts toward workload.
 """
 
 from app.config_values import compute_admin_status
-from app.models import Inquiry, ROLE_ADMIN, STATUS_READ, STATUS_WAITING, User
-
-WAITING_STATUSES = (STATUS_WAITING, STATUS_READ)
+from app.models import Inquiry, ROLE_ADMIN, STATUS_CLOSED, User, WAITING_FOR_ADMIN
 
 
 def waiting_count_for_admin(admin_id):
     return Inquiry.query.filter(
         Inquiry.admin_id == admin_id,
         Inquiry.is_deleted.is_(False),
-        Inquiry.status.in_(WAITING_STATUSES),
+        Inquiry.status != STATUS_CLOSED,
+        Inquiry.waiting_for == WAITING_FOR_ADMIN,
     ).count()
 
 

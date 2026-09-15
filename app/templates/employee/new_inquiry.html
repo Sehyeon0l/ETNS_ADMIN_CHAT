@@ -4,17 +4,13 @@
 <h1>새 문의 작성</h1>
 
 {% if active %}
-<section class="section">
-    <p class="warn-banner">현재 처리 중인 문의가 있습니다.<br>기존 문의가 처리되거나 삭제된 후 다른 관리자에게 새로운 문의를 보낼 수 있습니다.</p>
-    <dl class="kv">
-        <dt>담당 관리자</dt><dd>{{ active.admin.name }}</dd>
-        <dt>제목</dt><dd>{{ active.title }}</dd>
-        <dt>상태</dt><dd><span class="badge badge-{{ active.status }}">{{ status_labels[active.status] }}</span></dd>
-    </dl>
-    <a href="{{ url_for('employee.inquiry_detail', inquiry_id=active.id) }}" class="btn-primary">현재 문의 확인</a>
-</section>
+<p class="warn-banner">
+    현재 진행 중인 대화가 있습니다.<br>
+    현재 대화를 종료하거나 삭제한 후 다른 관리자와 새로운 대화를 시작할 수 있습니다.
+</p>
+{% endif %}
 
-{% elif selected_admin %}
+{% if selected_admin and not active %}
 <section class="section">
     <h2>{{ selected_admin.name }} ({{ selected_admin.department }})</h2>
     <form class="form-grid" method="post">
@@ -35,12 +31,20 @@
 <p class="hint">관리자를 선택해주세요.</p>
 <div class="admin-list">
 {% for row in admin_rows %}
-    <div class="admin-card status-{{ row.status }}">
+    {% set is_current = active and active.admin_id == row.user.id %}
+    <div class="admin-card status-{{ row.status }} {{ 'current' if is_current }}">
         <span class="admin-dot">{{ admin_status_dots[row.status] }}</span>
         <span class="admin-name">{{ row.user.name }}</span>
         <span class="admin-dept">{{ row.user.department }}</span>
         <span class="admin-waiting">답변 대기 {{ row.waiting_count }}건</span>
-        <a href="{{ url_for('employee.new_inquiry', admin_id=row.user.id) }}" class="btn-primary">대화 시작</a>
+        {% if is_current %}
+            <span class="badge badge-ok">● 현재 대화 중</span>
+            <a href="{{ url_for('employee.inquiry_detail', inquiry_id=active.id) }}" class="btn-primary">현재 대화</a>
+        {% elif active %}
+            <button type="button" class="btn-disabled" disabled>대화 시작 불가</button>
+        {% else %}
+            <a href="{{ url_for('employee.new_inquiry', admin_id=row.user.id) }}" class="btn-primary">대화 시작</a>
+        {% endif %}
     </div>
 {% endfor %}
 </div>

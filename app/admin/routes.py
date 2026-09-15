@@ -1,8 +1,11 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from app.config_values import STATUS_DOTS, STATUS_LABELS as WORKLOAD_LABELS
 from app.models import Inquiry, STATUS_ANSWERED, STATUS_CLOSED, STATUS_LABELS, STATUS_READ, STATUS_WAITING
 from app.services.inquiries import InquiryError, add_admin_message, approve_delete, close_inquiry, mark_read_by_admin
+from app.services.waiting import waiting_count_for_admin
+from app.config_values import compute_admin_status
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -18,11 +21,30 @@ def _require_admin():
 def dashboard():
     show_deleted = request.args.get("deleted") == "1"
 
-    base_query = Inquiry.query.filter_by(admin_id=current_user.id)
     if show_deleted:
-        inquiries = base_query.filter_by(is_deleted=True).order_by(Inquiry.updated_at.desc()).all()
+        deleted_inquiries = (
+            Inquiry.query.filter_by(admin_id=current_user.id, is_deleted=True)
+            .order_by(Inquiry.updated_at.desc())
+            .all()
+        )
+        active_inquiries = []
+        closed_inquiries = []
     else:
-        inquiries = base_query.filter_by(is_deleted=False).order_by(Inquiry.updated_at.desc()).all()
+        deleted_inquiries = []
+        active_inquiries = (
+            Inquiry.query.filter(
+                Inquiry.admin_id == current_user.id,
+                Inquiry.is_deleted.is_(False),
+                Inquiry.status != STATUS_CLOSED,
+            )
+            .order_by(Inquiry.updated_at.desc())
+            .all()
+        )
+        closed_inquiries = (
+            Inquiry.query.filter_by(admin_id=current_user.id, is_deleted=False, status=STATUS_CLOSED)
+            .order_by(Inquiry.closed_at.desc())
+            .all()
+        )
 
     all_active = Inquiry.query.filter_by(admin_id=current_user.id, is_deleted=False).all()
     counts = {
@@ -33,12 +55,21 @@ def dashboard():
         "closed": sum(1 for i in all_active if i.status == STATUS_CLOSED),
     }
 
+    my_waiting_count = waiting_count_for_admin(current_user.id)
+    my_status = compute_admin_status(my_waiting_count)
+
     return render_template(
         "admin/dashboard.html",
-        inquiries=inquiries,
+        active_inquiries=active_inquiries,
+        closed_inquiries=closed_inquiries,
+        deleted_inquiries=deleted_inquiries,
         counts=counts,
         show_deleted=show_deleted,
         status_labels=STATUS_LABELS,
+        my_waiting_count=my_waiting_count,
+        my_status=my_status,
+        my_status_dot=STATUS_DOTS[my_status],
+        my_status_label=WORKLOAD_LABELS[my_status],
     )
 
 

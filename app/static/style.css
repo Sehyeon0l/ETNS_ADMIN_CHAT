@@ -17,6 +17,8 @@
     --red: #b3261e;
     --red-bg: #fbe9e7;
     --neutral-bg: #eef0f6;
+    --sidebar-width: 300px;
+    --sidebar-collapsed-width: 72px;
 }
 
 body {
@@ -25,6 +27,233 @@ body {
     color: var(--text);
     font-family: "Segoe UI", "Malgun Gothic", -apple-system, sans-serif;
     line-height: 1.55;
+}
+
+/* ===== messenger app shell (employee pages) ===== */
+.app-shell {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+}
+
+.sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    transition: flex-basis 0.2s ease, width 0.2s ease;
+}
+
+.app-shell.collapsed .sidebar {
+    flex-basis: var(--sidebar-collapsed-width);
+    width: var(--sidebar-collapsed-width);
+    padding: 14px 8px;
+}
+
+.app-shell.collapsed .hide-on-collapse {
+    display: none !important;
+}
+
+.app-shell.collapsed .sidebar-admin-row,
+.app-shell.collapsed .my-info {
+    justify-content: center;
+}
+
+.main-area {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 32px 28px 64px;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 6px 12px;
+}
+
+.sidebar-title {
+    font-weight: 700;
+    font-size: 14.5px;
+    white-space: nowrap;
+}
+
+.sidebar-toggle {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.sidebar-toggle:hover {
+    background: var(--neutral-bg);
+}
+
+.sidebar-section {
+    padding: 10px 6px;
+    border-top: 1px solid var(--border);
+}
+
+.sidebar-section:first-of-type {
+    border-top: none;
+}
+
+.sidebar-heading {
+    margin: 0 0 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.sidebar-subheading {
+    margin: 12px 0 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.my-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.my-info-icon {
+    font-size: 22px;
+    flex: none;
+}
+
+.my-info-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+}
+
+.my-info-name {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.my-info-dept,
+.my-info-role {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.my-info .logout-form {
+    margin-left: auto;
+}
+
+.sidebar-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-admin-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    border-left: 3px solid transparent;
+}
+
+.sidebar-admin-row:hover {
+    background: var(--neutral-bg);
+}
+
+.sidebar-admin-row.current {
+    background: var(--neutral-bg);
+    border-left-color: var(--accent);
+}
+
+.sidebar-admin-row .dot {
+    font-size: 13px;
+    flex: none;
+}
+
+.sidebar-admin-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+    min-width: 0;
+}
+
+.sidebar-admin-text .name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sidebar-admin-text .dept,
+.sidebar-admin-text .waiting {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.sidebar-convo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    margin-bottom: 3px;
+}
+
+.sidebar-convo:hover {
+    background: var(--neutral-bg);
+}
+
+.sidebar-convo.current {
+    background: var(--green-bg);
+}
+
+.sidebar-convo .convo-title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-convo .convo-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+    .app-shell {
+        flex-direction: column;
+    }
+    .sidebar {
+        flex-basis: auto;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .app-shell.collapsed .sidebar {
+        width: 100%;
+    }
 }
 
 a {
@@ -142,6 +371,32 @@ h2 {
     font-weight: 700;
 }
 
+.my-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--neutral-bg);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.my-status.status-GREEN {
+    background: var(--green-bg);
+    color: var(--green);
+}
+
+.my-status.status-YELLOW {
+    background: var(--yellow-bg);
+    color: var(--yellow);
+}
+
+.my-status.status-RED {
+    background: var(--red-bg);
+    color: var(--red);
+}
+
 /* admin selection / status list -- one admin per line */
 .admin-list {
     display: flex;
@@ -174,8 +429,14 @@ h2 {
     margin-bottom: 0;
 }
 
-.admin-card .btn-primary {
+.admin-card .btn-primary,
+.admin-card .btn-disabled {
     margin-left: auto;
+}
+
+.admin-card.current {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
 }
 
 .admin-card.status-GREEN {
@@ -277,6 +538,16 @@ h2 {
     padding: 10px 14px;
     font-size: 13px;
     margin: 0 0 14px;
+}
+
+.closed-banner {
+    background: var(--neutral-bg);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin: 0 0 14px;
+    text-align: center;
 }
 
 /* forms */

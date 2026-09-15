@@ -20,6 +20,12 @@ STATUS_LABELS = {
     STATUS_CLOSED: "문의 종료",
 }
 
+# who currently owes the next reply -- independent of `status`, this is
+# what admin workload (waiting-count) is actually computed from
+WAITING_FOR_ADMIN = "ADMIN"
+WAITING_FOR_EMPLOYEE = "EMPLOYEE"
+WAITING_FOR_NONE = "NONE"
+
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -52,6 +58,7 @@ class Inquiry(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     status = db.Column(db.String(20), nullable=False, default=STATUS_WAITING)
+    waiting_for = db.Column(db.String(20), nullable=False, default=WAITING_FOR_ADMIN)
 
     is_read = db.Column(db.Boolean, nullable=False, default=False)
     read_at = db.Column(db.DateTime)
@@ -63,6 +70,7 @@ class Inquiry(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    closed_at = db.Column(db.DateTime)
 
     employee = db.relationship("User", foreign_keys=[employee_id])
     admin = db.relationship("User", foreign_keys=[admin_id])

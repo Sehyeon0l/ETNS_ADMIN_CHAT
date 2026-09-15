@@ -7,7 +7,80 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-{% if current_user.is_authenticated %}
+{% if current_user.is_authenticated and not current_user.is_admin %}
+<div class="app-shell" id="app-shell">
+<script>
+(function () {
+    try {
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.getElementById('app-shell').classList.add('collapsed');
+        }
+    } catch (e) {}
+})();
+</script>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title hide-on-collapse">💬 사내 메신저</span>
+            <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="사이드바 접기/펼치기">‹</button>
+        </div>
+
+        <div class="sidebar-section my-info" title="{{ current_user.name }} · {{ current_user.department or '' }} · 조직원">
+            <span class="my-info-icon">👤</span>
+            <span class="my-info-text hide-on-collapse">
+                <span class="my-info-name">{{ current_user.name }}</span>
+                <span class="my-info-dept">{{ current_user.department or '' }}</span>
+                <span class="my-info-role">조직원</span>
+            </span>
+            <form action="{{ url_for('auth.logout') }}" method="post" class="hide-on-collapse logout-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="link-btn">로그아웃</button>
+            </form>
+        </div>
+
+        <div class="sidebar-section">
+            <p class="sidebar-heading hide-on-collapse">관리자 정보</p>
+            <div class="sidebar-admin-list">
+            {% for row in sidebar_admin_rows %}
+                <a href="{{ url_for('employee.new_inquiry', admin_id=row.user.id) }}"
+                   class="sidebar-admin-row status-{{ row.status }} {{ 'current' if sidebar_active and sidebar_active.admin_id == row.user.id }}"
+                   title="{{ row.user.name }} · {{ row.user.department }} · 답변 대기 {{ row.waiting_count }}건">
+                    <span class="dot">{{ sidebar_status_dots[row.status] }}</span>
+                    <span class="sidebar-admin-text hide-on-collapse">
+                        <span class="name">{{ row.user.name }}</span>
+                        <span class="dept">{{ row.user.department }}</span>
+                        <span class="waiting">답변 대기 {{ row.waiting_count }}건</span>
+                    </span>
+                </a>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="sidebar-section hide-on-collapse">
+            <p class="sidebar-heading">내 대화</p>
+            {% if sidebar_active %}
+            <a href="{{ url_for('employee.inquiry_detail', inquiry_id=sidebar_active.id) }}" class="sidebar-convo current">
+                <span class="convo-title">{{ sidebar_active.admin.name }} · {{ sidebar_active.title }}</span>
+                <span class="convo-sub">답변 대기 중</span>
+            </a>
+            {% endif %}
+            {% if sidebar_history %}
+            <p class="sidebar-subheading">종료된 대화</p>
+            {% for h in sidebar_history %}
+            <a href="{{ url_for('employee.inquiry_detail', inquiry_id=h.id) }}" class="sidebar-convo">
+                <span class="convo-title">{{ h.admin.name }} · {{ h.title }}</span>
+                <span class="convo-sub">{{ h.closed_at.strftime('%Y-%m-%d') if h.closed_at else '' }} 종료</span>
+            </a>
+            {% endfor %}
+            {% endif %}
+            {% if not sidebar_active and not sidebar_history %}
+            <p class="hint">아직 대화 내역이 없습니다.</p>
+            {% endif %}
+        </div>
+    </aside>
+
+    <main class="main-area">
+{% else %}
+    {% if current_user.is_authenticated %}
 <header class="topbar">
     <div class="topbar-inner">
         <a class="brand" href="{{ url_for('admin.dashboard' if current_user.is_admin else 'employee.home') }}">ETNERS 사내문의</a>
@@ -20,20 +93,36 @@
         </div>
     </div>
 </header>
-{% endif %}
-
+    {% endif %}
 <main class="page">
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="flash-list">
-            {% for message in messages %}
-            <div class="flash">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    {% endwith %}
-
-    {% block content %}{% endblock %}
+{% endif %}
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <div class="flash-list">
+                {% for message in messages %}
+                <div class="flash">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+{% if current_user.is_authenticated and not current_user.is_admin %}
+    </main>
+</div>
+<script>
+(function () {
+    var shell = document.getElementById('app-shell');
+    var btn = document.getElementById('sidebar-toggle');
+    btn.textContent = shell.classList.contains('collapsed') ? '›' : '‹';
+    btn.addEventListener('click', function () {
+        var collapsed = shell.classList.toggle('collapsed');
+        btn.textContent = collapsed ? '›' : '‹';
+        try { localStorage.setItem('sidebarCollapsed', collapsed ? 'true' : 'false'); } catch (e) {}
+    });
+})();
+</script>
+{% else %}
 </main>
+{% endif %}
 </body>
 </html>

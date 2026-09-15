@@ -2,9 +2,12 @@
 {% block title %}{{ inquiry.title }}{% endblock %}
 {% block content %}
 <div class="section-head">
-    <h1>{{ inquiry.title }}</h1>
+    <h1>{{ inquiry.admin.name }} · {{ inquiry.admin.department or '' }}</h1>
     <a href="{{ url_for('employee.home') }}" class="btn-secondary">내 문의로</a>
 </div>
+{% if inquiry.status == 'CLOSED' %}
+<p class="hint">종료된 대화 · {{ inquiry.closed_at.strftime('%Y-%m-%d') if inquiry.closed_at else '' }}</p>
+{% endif %}
 
 <dl class="kv inquiry-meta">
     <dt>담당 관리자</dt><dd>{{ inquiry.admin.name }} ({{ inquiry.admin.department or '' }})</dd>
@@ -30,7 +33,7 @@
     <button type="submit" class="btn-primary">전송</button>
 </form>
 {% else %}
-<p class="hint">종료된 문의입니다. 더 이상 메시지를 보낼 수 없습니다.</p>
+<p class="closed-banner">🔒 종료된 대화입니다.<br>새로운 메시지를 보내려면 새로운 대화를 시작해주세요.</p>
 {% endif %}
 
 <section class="section delete-section">

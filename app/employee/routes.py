@@ -2,7 +2,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user, login_required
 
 from app.config_values import STATUS_DOTS, STATUS_LABELS as ADMIN_STATUS_LABELS
-from app.models import ROLE_ADMIN, STATUS_LABELS, Inquiry, User
+from app.models import ROLE_ADMIN, STATUS_CLOSED, STATUS_LABELS, Inquiry, User
 from app.services.inquiries import (
     InquiryError,
     add_employee_message,
@@ -22,17 +22,30 @@ def _require_login():
         abort(403)
 
 
+@employee_bp.context_processor
+def inject_sidebar_data():
+    """Powers the persistent left sidebar (my info / admin list / my
+    conversations) on every employee page, without every route needing to
+    pass it explicitly."""
+    if not current_user.is_authenticated or current_user.is_admin:
+        return {}
+    history = (
+        Inquiry.query.filter_by(employee_id=current_user.id, is_deleted=False, status=STATUS_CLOSED)
+        .order_by(Inquiry.closed_at.desc())
+        .all()
+    )
+    return dict(
+        sidebar_active=get_active_inquiry(current_user.id),
+        sidebar_history=history,
+        sidebar_admin_rows=admins_with_status(),
+        sidebar_status_dots=STATUS_DOTS,
+    )
+
+
 @employee_bp.route("/")
 def home():
     active = get_active_inquiry(current_user.id)
-    return render_template(
-        "employee/home.html",
-        active=active,
-        status_labels=STATUS_LABELS,
-        admin_rows=admins_with_status(),
-        admin_status_dots=STATUS_DOTS,
-        admin_status_labels=ADMIN_STATUS_LABELS,
-    )
+    return render_template("employee/home.html", active=active, status_labels=STATUS_LABELS)
 
 
 @employee_bp.route("/inquiries/new", methods=["GET", "POST"])

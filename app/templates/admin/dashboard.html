@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block title %}문의 관리{% endblock %}
 {% block content %}
-<h1>문의 관리</h1>
+<div class="section-head">
+    <h1>문의 관리</h1>
+    <div class="my-status status-{{ my_status }}">
+        <span class="admin-dot">{{ my_status_dot }}</span> {{ my_status_label }} · 답변 대기 {{ my_waiting_count }}건
+    </div>
+</div>
+<p class="hint">내 업무량은 답변 대기 중인 대화 수를 기준으로 시스템이 자동 계산하며, 직접 변경할 수 없습니다.</p>
 
 <div class="card-grid">
     <div class="card"><p class="card-label">전체 문의</p><p class="card-value">{{ counts.total }}</p></div>
@@ -12,16 +18,17 @@
 </div>
 
 <div class="section-head">
-    <h2>{{ '삭제된 문의' if show_deleted else '문의 목록' }}</h2>
+    <h2>{{ '삭제된 문의' if show_deleted else '내 대화' }}</h2>
     <a href="{{ url_for('admin.dashboard', deleted=0 if show_deleted else 1) }}" class="btn-secondary">
         {{ '삭제되지 않은 문의 보기' if show_deleted else '삭제된 문의 이력 보기' }}
     </a>
 </div>
 
+{% if show_deleted %}
 <table class="table">
     <thead><tr><th>상태</th><th>임직원</th><th>제목</th><th>읽음</th><th>작성일</th><th></th></tr></thead>
     <tbody>
-    {% for inq in inquiries %}
+    {% for inq in deleted_inquiries %}
         <tr>
             <td><span class="badge badge-{{ inq.status }}">{{ status_labels[inq.status] }}</span></td>
             <td>{{ inq.employee.name }}</td>
@@ -31,8 +38,50 @@
             <td><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}">열기</a></td>
         </tr>
     {% else %}
-        <tr><td colspan="6" class="empty">문의가 없습니다.</td></tr>
+        <tr><td colspan="6" class="empty">삭제된 문의가 없습니다.</td></tr>
     {% endfor %}
     </tbody>
 </table>
+
+{% else %}
+<section class="section">
+    <h2>진행 중</h2>
+    <table class="table">
+        <thead><tr><th>상태</th><th>임직원</th><th>제목</th><th>읽음</th><th>작성일</th><th></th></tr></thead>
+        <tbody>
+        {% for inq in active_inquiries %}
+            <tr>
+                <td><span class="badge badge-{{ inq.status }}">{{ status_labels[inq.status] }}</span></td>
+                <td>{{ inq.employee.name }}</td>
+                <td>{{ inq.title }}</td>
+                <td>{{ '읽음' if inq.is_read else '미읽음' }}</td>
+                <td>{{ inq.created_at.strftime('%Y-%m-%d') }}</td>
+                <td><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}">열기</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6" class="empty">진행 중인 대화가 없습니다.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="section">
+    <h2>종료됨</h2>
+    <table class="table">
+        <thead><tr><th>임직원</th><th>제목</th><th>종료일</th><th></th></tr></thead>
+        <tbody>
+        {% for inq in closed_inquiries %}
+            <tr>
+                <td>{{ inq.employee.name }}</td>
+                <td>{{ inq.title }}</td>
+                <td>{{ inq.closed_at.strftime('%Y-%m-%d') if inq.closed_at else '-' }}</td>
+                <td><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}">열기</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4" class="empty">종료된 대화가 없습니다.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
 {% endblock %}
