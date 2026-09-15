@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}사내 문의{% endblock %} - ETNS</title>
+<title>{% block title %}사내 문의{% endblock %} - ETNERS</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 {% if current_user.is_authenticated %}
 <header class="topbar">
     <div class="topbar-inner">
-        <a class="brand" href="{{ url_for('admin.dashboard' if current_user.is_admin else 'employee.home') }}">ETNS 사내문의</a>
+        <a class="brand" href="{{ url_for('admin.dashboard' if current_user.is_admin else 'employee.home') }}">ETNERS 사내문의</a>
         <div class="topbar-right">
             <span class="who">{{ current_user.name }}{% if current_user.is_admin %} · {{ current_user.department or '관리자' }}{% endif %}</span>
             <form action="{{ url_for('auth.logout') }}" method="post">
