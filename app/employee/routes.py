@@ -1,14 +1,18 @@
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+import io
+
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app.config_values import STATUS_DOTS, STATUS_LABELS as ADMIN_STATUS_LABELS
-from app.models import ROLE_ADMIN, STATUS_CLOSED, STATUS_LABELS, Inquiry, User
+from app.models import ROLE_ADMIN, STATUS_CLOSED, STATUS_LABELS, Attachment, Inquiry, User
+from app.services.attachments import AttachmentError, can_access
 from app.services.inquiries import (
     InquiryError,
     add_employee_message,
     create_inquiry,
     delete_by_employee,
     get_active_inquiry,
+    request_delete,
 )
 from app.services.waiting import admins_with_status
 
@@ -60,6 +64,7 @@ def new_inquiry():
         admin_id = request.form.get("admin_id", type=int)
         title = request.form.get("title", "").strip()
         content = request.form.get("content", "").strip()
+        files = request.files.getlist("attachments")
         admin = User.query.filter_by(id=admin_id, role=ROLE_ADMIN).first()
 
         if not admin or not title or not content:
@@ -67,8 +72,8 @@ def new_inquiry():
             return redirect(url_for("employee.new_inquiry"))
 
         try:
-            inquiry = create_inquiry(current_user, admin, title, content)
-        except InquiryError as e:
+            inquiry = create_inquiry(current_user, admin, title, content, files=files)
+        except (InquiryError, AttachmentError) as e:
             flash(str(e))
             return redirect(url_for("employee.new_inquiry"))
 
@@ -100,10 +105,11 @@ def inquiry_detail(inquiry_id):
 def send_message(inquiry_id):
     inquiry = Inquiry.query.filter_by(id=inquiry_id, employee_id=current_user.id, is_deleted=False).first_or_404()
     content = request.form.get("content", "").strip()
-    if content:
+    files = request.files.getlist("attachments")
+    if content or any(f.filename for f in files):
         try:
-            add_employee_message(inquiry, current_user, content)
-        except InquiryError as e:
+            add_employee_message(inquiry, current_user, content or "(첨부파일)", files=files)
+        except (InquiryError, AttachmentError) as e:
             flash(str(e))
     return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
 
@@ -118,3 +124,27 @@ def delete_inquiry(inquiry_id):
     except InquiryError as e:
         flash(str(e))
         return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
+
+
+@employee_bp.route("/inquiries/<int:inquiry_id>/request-delete", methods=["POST"])
+def request_delete_inquiry(inquiry_id):
+    inquiry = Inquiry.query.filter_by(id=inquiry_id, employee_id=current_user.id, is_deleted=False).first_or_404()
+    try:
+        request_delete(inquiry, current_user)
+        flash("삭제를 요청했습니다. 관리자 승인 후 처리됩니다.")
+    except InquiryError as e:
+        flash(str(e))
+    return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
+
+
+@employee_bp.route("/attachments/<int:attachment_id>")
+def download_attachment(attachment_id):
+    attachment = Attachment.query.get_or_404(attachment_id)
+    if not can_access(attachment, current_user):
+        abort(403)
+    return send_file(
+        io.BytesIO(attachment.file_data),
+        mimetype=attachment.mime_type,
+        as_attachment=False,
+        download_name=attachment.original_filename,
+    )

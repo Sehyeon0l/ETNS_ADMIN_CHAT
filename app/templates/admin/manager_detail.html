@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ manager.name }} 관리{% endblock %}
+{% block content %}
+<div class="section-head">
+    <h1>{{ manager.name }} ({{ manager.department or '-' }})</h1>
+    <a href="{{ url_for('admin.managers') }}" class="btn-secondary">관리자 목록으로</a>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-box"><p class="stat-label">답변 대기</p><p class="stat-value">{{ waiting_count }}건</p></div>
+    <div class="stat-box"><p class="stat-label">업무 상태</p><p class="stat-value">{{ status_dot }} {{ status_label }}</p></div>
+    <div class="stat-box"><p class="stat-label">전체 대화</p><p class="stat-value">{{ conversations|length }}</p></div>
+    <div class="stat-box">
+        <p class="stat-label">계정 상태</p>
+        <p class="stat-value"><span class="status-pill {{ 'active' if manager.is_active else 'inactive' }}">{{ '활성' if manager.is_active else '비활성' }}</span></p>
+    </div>
+</div>
+
+<section class="section">
+    <h2>계정 관리</h2>
+    <div class="action-row">
+        <form method="post" action="{{ url_for('admin.toggle_manager_active', manager_id=manager.id) }}"
+              onsubmit="return confirm('{{ manager.name }}의 계정을 {{ '비활성화' if manager.is_active else '활성화' }}하시겠습니까?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-secondary">{{ '비활성화' if manager.is_active else '활성화' }}</button>
+        </form>
+    </div>
+    <form class="form-grid" method="post" action="{{ url_for('admin.change_manager_password', manager_id=manager.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>새 비밀번호 (6자 이상)
+            <input type="password" name="new_password" minlength="6" required>
+        </label>
+        <button type="submit" class="btn-secondary">비밀번호 변경</button>
+    </form>
+</section>
+
+<section class="section">
+    <h2>담당 대화 목록</h2>
+    <table class="table">
+        <thead><tr><th>상태</th><th>임직원</th><th>제목</th><th>작성일</th><th></th></tr></thead>
+        <tbody>
+        {% for inq in conversations %}
+            <tr>
+                <td><span class="badge badge-{{ inq.status }}">{{ status_labels[inq.status] }}</span></td>
+                <td>{{ inq.employee.name }}</td>
+                <td>{{ inq.title }}</td>
+                <td>{{ inq.created_at.strftime('%Y-%m-%d') }}</td>
+                <td><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}">열기</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="empty">담당 대화가 없습니다.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

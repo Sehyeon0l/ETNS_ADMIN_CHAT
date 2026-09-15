@@ -17,9 +17,13 @@ def login():
         password = request.form.get("password", "")
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for("admin.dashboard" if user.is_admin else "employee.home"))
-        error = "이메일 또는 비밀번호가 올바르지 않습니다."
+            if not user.is_active:
+                error = "비활성화된 계정입니다. 관리자에게 문의해주세요."
+            else:
+                login_user(user)
+                return redirect(url_for("admin.dashboard" if user.is_admin else "employee.home"))
+        else:
+            error = "이메일 또는 비밀번호가 올바르지 않습니다."
     return render_template("login.html", error=error)
 
 

@@ -12,14 +12,14 @@ not-yet-answered conversation still counts toward workload.
 """
 
 from app.config_values import compute_admin_status
-from app.models import Inquiry, ROLE_ADMIN, STATUS_CLOSED, User, WAITING_FOR_ADMIN
+from app.models import Inquiry, ROLE_ADMIN, STATUS_CANCELLED, STATUS_CLOSED, User, WAITING_FOR_ADMIN
 
 
 def waiting_count_for_admin(admin_id):
     return Inquiry.query.filter(
         Inquiry.admin_id == admin_id,
         Inquiry.is_deleted.is_(False),
-        Inquiry.status != STATUS_CLOSED,
+        Inquiry.status.notin_((STATUS_CLOSED, STATUS_CANCELLED)),
         Inquiry.waiting_for == WAITING_FOR_ADMIN,
     ).count()
 

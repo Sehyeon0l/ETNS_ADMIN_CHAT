@@ -13,7 +13,7 @@
 {% if selected_admin and not active %}
 <section class="section">
     <h2>{{ selected_admin.name }} ({{ selected_admin.department }})</h2>
-    <form class="form-grid" method="post">
+    <form class="form-grid" method="post" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="admin_id" value="{{ selected_admin.id }}">
         <label>제목
@@ -21,6 +21,9 @@
         </label>
         <label>문의 내용
             <textarea name="content" rows="5" required></textarea>
+        </label>
+        <label>첨부파일
+            <input type="file" name="attachments" multiple>
         </label>
         <button type="submit" class="btn-primary">문의 보내기</button>
     </form>

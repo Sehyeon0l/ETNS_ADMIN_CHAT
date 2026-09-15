@@ -11,7 +11,8 @@
     <dt>작성일</dt><dd>{{ inquiry.created_at.strftime('%Y-%m-%d') }}</dd>
     <dt>상태</dt><dd><span class="badge badge-{{ inquiry.status }}">{{ status_labels[inquiry.status] }}</span></dd>
     <dt>읽음</dt><dd>{{ '읽음' if inquiry.is_read else '읽지 않음' }}</dd>
-    <dt>삭제 승인</dt><dd>{{ '승인됨' if inquiry.delete_approved else '미승인' }}</dd>
+    <dt>삭제 요청</dt><dd>{{ '요청됨' if inquiry.delete_requested else '없음' }}</dd>
+    <dt>삭제 승인(취소 처리)</dt><dd>{{ '완료' if inquiry.delete_approved else '미승인' }}</dd>
 </dl>
 
 <div class="chat-thread">
@@ -19,47 +20,85 @@
     <div class="chat-bubble {{ 'me' if m.sender_id == current_user.id else 'them' }}">
         <span class="chat-sender">{{ '나' if m.sender_id == current_user.id else inquiry.employee.name }}</span>
         <p class="chat-body">{{ m.content }}</p>
+        {% if m.attachments %}
+        <div class="attachment-list">
+        {% for a in m.attachments %}
+            {% if a.mime_type.startswith('image/') %}
+            <a href="{{ url_for('admin.download_attachment', attachment_id=a.id) }}" target="_blank" class="attachment-image">
+                <img src="{{ url_for('admin.download_attachment', attachment_id=a.id) }}" alt="{{ a.original_filename }}">
+            </a>
+            {% else %}
+            <a href="{{ url_for('admin.download_attachment', attachment_id=a.id) }}" target="_blank" class="attachment-file">
+                📄 <span class="attachment-name">{{ a.original_filename }}</span>
+                <span class="attachment-size">{{ (a.file_size / 1024 / 1024) | round(1) }} MB</span>
+                <span class="attachment-open">열기</span>
+            </a>
+            {% endif %}
+        {% endfor %}
+        </div>
+        {% endif %}
         <span class="chat-time">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
     </div>
 {% endfor %}
 </div>
 
-{% if inquiry.status != 'CLOSED' %}
-<form class="chat-form" method="post" action="{{ url_for('admin.send_message', inquiry_id=inquiry.id) }}">
+{% if not is_owner %}
+<p class="hint">다른 관리자가 담당하는 문의입니다. 조회만 가능하며 답변/처리는 담당 관리자만 할 수 있습니다.</p>
+{% elif inquiry.status not in ('CLOSED', 'CANCELLED') %}
+<form class="chat-form" method="post" action="{{ url_for('admin.send_message', inquiry_id=inquiry.id) }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <textarea name="content" rows="3" placeholder="답변을 입력하세요" required></textarea>
-    <button type="submit" class="btn-primary">답변 작성</button>
+    <div class="chat-form-main">
+        <textarea name="content" rows="3" placeholder="답변을 입력하세요"></textarea>
+        <button type="submit" class="btn-primary">답변 작성</button>
+    </div>
+    <label class="file-attach-label">📎 파일 첨부
+        <input type="file" name="attachments" multiple>
+    </label>
 </form>
+{% elif inquiry.status == 'CANCELLED' %}
+<p class="hint"><strong>문의 취소 완료</strong> · 해당 문의는 취소 처리되었습니다.</p>
 {% else %}
 <p class="hint">종료된 문의입니다.</p>
 {% endif %}
 
+{% if is_owner %}
 <section class="section admin-actions">
     <h2>문의 처리</h2>
     <div class="action-row">
         {% if inquiry.is_deleted %}
             <p class="hint">임직원이 삭제한 문의입니다 (삭제 이력).</p>
         {% else %}
-            {% if inquiry.is_read and not inquiry.delete_approved %}
-            <form method="post" action="{{ url_for('admin.approve_delete_route', inquiry_id=inquiry.id) }}">
+            {% if inquiry.delete_requested and not inquiry.delete_approved %}
+            <form method="post" action="{{ url_for('admin.approve_delete_route', inquiry_id=inquiry.id) }}"
+                  onsubmit="return confirm('삭제를 승인하시겠습니까?\n\n승인 시 문의가 취소 처리되며 되돌릴 수 없습니다.');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-secondary">삭제 승인</button>
             </form>
             {% elif inquiry.delete_approved %}
-            <span class="badge badge-ok">삭제 승인 완료</span>
+            <span class="badge badge-CANCELLED">취소 처리 완료</span>
             {% else %}
-            <span class="hint">임직원이 아직 읽지 않은 문의라 삭제 승인이 필요하지 않습니다.</span>
+            <span class="hint">임직원이 삭제를 요청하지 않았습니다.</span>
             {% endif %}
 
-            {% if inquiry.status != 'CLOSED' %}
+            {% if inquiry.status not in ('CLOSED', 'CANCELLED') %}
             <form method="post" action="{{ url_for('admin.close_inquiry_route', inquiry_id=inquiry.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-secondary">문의 종료</button>
             </form>
-            {% else %}
+            {% elif inquiry.status == 'CLOSED' %}
             <span class="badge badge-CLOSED">종료됨</span>
             {% endif %}
         {% endif %}
     </div>
+</section>
+{% endif %}
+
+<section class="section">
+    <h2>처리 이력</h2>
+    <ul class="history-list">
+    {% for ts, desc in history %}
+        <li><span class="history-time">{{ ts.strftime('%Y-%m-%d %H:%M') }}</span> {{ desc }}</li>
+    {% endfor %}
+    </ul>
 </section>
 {% endblock %}

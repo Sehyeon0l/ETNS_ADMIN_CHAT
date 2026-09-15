@@ -9,12 +9,20 @@
 </div>
 <p class="hint">내 업무량은 답변 대기 중인 대화 수를 기준으로 시스템이 자동 계산하며, 직접 변경할 수 없습니다.</p>
 
+<div class="nav-links">
+    <a href="{{ url_for('admin.delete_requests') }}" class="btn-secondary">
+        삭제 승인 요청 {% if pending_delete_requests %}<span class="badge badge-warn">{{ pending_delete_requests }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('admin.users') }}" class="btn-secondary">임직원 관리</a>
+    <a href="{{ url_for('admin.managers') }}" class="btn-secondary">관리자 관리</a>
+</div>
+
 <div class="card-grid">
     <div class="card"><p class="card-label">전체 문의</p><p class="card-value">{{ counts.total }}</p></div>
     <div class="card"><p class="card-label">읽지 않은 문의</p><p class="card-value">{{ counts.unread }}</p></div>
     <div class="card"><p class="card-label">처리 중</p><p class="card-value">{{ counts.waiting_or_read }}</p></div>
-    <div class="card"><p class="card-label">답변 완료</p><p class="card-value">{{ counts.answered }}</p></div>
     <div class="card"><p class="card-label">종료</p><p class="card-value">{{ counts.closed }}</p></div>
+    <div class="card"><p class="card-label">취소</p><p class="card-value">{{ counts.cancelled }}</p></div>
 </div>
 
 <div class="section-head">
@@ -66,19 +74,20 @@
 </section>
 
 <section class="section">
-    <h2>종료됨</h2>
+    <h2>종료 / 취소됨</h2>
     <table class="table">
-        <thead><tr><th>임직원</th><th>제목</th><th>종료일</th><th></th></tr></thead>
+        <thead><tr><th>상태</th><th>임직원</th><th>제목</th><th>종료일</th><th></th></tr></thead>
         <tbody>
         {% for inq in closed_inquiries %}
             <tr>
+                <td><span class="badge badge-{{ inq.status }}">{{ status_labels[inq.status] }}</span></td>
                 <td>{{ inq.employee.name }}</td>
                 <td>{{ inq.title }}</td>
-                <td>{{ inq.closed_at.strftime('%Y-%m-%d') if inq.closed_at else '-' }}</td>
+                <td>{{ (inq.closed_at or inq.cancelled_at).strftime('%Y-%m-%d') if (inq.closed_at or inq.cancelled_at) else '-' }}</td>
                 <td><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}">열기</a></td>
             </tr>
         {% else %}
-            <tr><td colspan="4" class="empty">종료된 대화가 없습니다.</td></tr>
+            <tr><td colspan="5" class="empty">종료/취소된 대화가 없습니다.</td></tr>
         {% endfor %}
         </tbody>
     </table>

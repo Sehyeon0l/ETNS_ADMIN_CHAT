@@ -32,3 +32,20 @@ def compute_admin_status(waiting_count):
     if waiting_count <= ADMIN_STATUS_THRESHOLD["YELLOW_MAX"]:
         return STATUS_YELLOW
     return STATUS_RED
+
+
+# ---- attachments ----
+ALLOWED_FILE_EXTENSIONS = [
+    "jpg", "jpeg", "png", "gif", "webp",
+    "pdf",
+    "doc", "docx",
+    "xls", "xlsx",
+    "ppt", "pptx",
+    "txt",
+]
+
+# Vercel's serverless functions cap request bodies well under 10MB, and
+# files are stored as bytes in Postgres -- keep this modest.
+MAX_FILE_SIZE = 4 * 1024 * 1024  # 4MB per file
+
+IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}삭제 승인 요청{% endblock %}
+{% block content %}
+<div class="section-head">
+    <h1>삭제 승인 요청</h1>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">문의함으로</a>
+</div>
+<p class="hint">임직원이 삭제를 요청한 문의 목록입니다. 승인하면 해당 문의는 <strong>취소 처리</strong>되며, 종료(CLOSED)와는 별개의 상태로 기록됩니다.</p>
+
+<table class="table">
+    <thead><tr><th>임직원</th><th>제목</th><th>요청일시</th><th></th></tr></thead>
+    <tbody>
+    {% for inq in requests %}
+        <tr>
+            <td>{{ inq.employee.name }} ({{ inq.employee.employee_number }})</td>
+            <td>{{ inq.title }}</td>
+            <td>{{ inq.delete_requested_at.strftime('%Y-%m-%d %H:%M') if inq.delete_requested_at else '-' }}</td>
+            <td>
+                <a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}" class="btn-secondary">상세보기</a>
+                <form method="post" action="{{ url_for('admin.approve_delete_route', inquiry_id=inq.id) }}"
+                      style="display:inline"
+                      onsubmit="return confirm('삭제를 승인하시겠습니까?\n\n승인 시 문의가 취소 처리되며 되돌릴 수 없습니다.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-danger">삭제 승인</button>
+                </form>
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="4" class="empty">대기 중인 삭제 요청이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

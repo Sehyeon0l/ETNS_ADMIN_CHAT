@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}관리자 관리{% endblock %}
+{% block content %}
+<div class="section-head">
+    <h1>관리자 관리</h1>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">문의함으로</a>
+</div>
+
+<form class="search-form" method="get">
+    <input type="text" name="q" value="{{ q }}" placeholder="이름 또는 소속으로 검색">
+    <button type="submit" class="btn-secondary">검색</button>
+</form>
+
+<table class="table mgmt-table">
+    <thead><tr><th>이름</th><th>소속</th><th>답변 대기</th><th>업무 상태</th><th>계정 상태</th><th></th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+        <tr>
+            <td>{{ row.user.name }}</td>
+            <td>{{ row.user.department or '-' }}</td>
+            <td>{{ row.waiting_count }}건</td>
+            <td>{{ status_dots[row.status] }} {{ status_labels[row.status] }}</td>
+            <td><span class="status-pill {{ 'active' if row.user.is_active else 'inactive' }}">{{ '활성' if row.user.is_active else '비활성' }}</span></td>
+            <td><a href="{{ url_for('admin.manager_detail', manager_id=row.user.id) }}" class="btn-secondary">상세</a></td>
+        </tr>
+    {% else %}
+        <tr><td colspan="6" class="empty">검색 결과가 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
