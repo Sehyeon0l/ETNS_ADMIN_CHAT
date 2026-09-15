@@ -142,6 +142,60 @@ h2 {
     font-weight: 700;
 }
 
+/* admin selection / status list */
+.admin-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.admin-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--neutral-bg);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.admin-card.status-GREEN {
+    border-left-color: var(--green);
+}
+
+.admin-card.status-YELLOW {
+    border-left-color: var(--yellow);
+}
+
+.admin-card.status-RED {
+    border-left-color: var(--red);
+}
+
+.admin-dot {
+    font-size: 16px;
+}
+
+.admin-name {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.admin-dept {
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.admin-waiting {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.admin-card .btn-primary {
+    align-self: flex-start;
+}
+
 /* key-value meta lists */
 .kv {
     display: grid;

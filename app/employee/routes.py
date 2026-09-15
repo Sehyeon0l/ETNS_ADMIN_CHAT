@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from app.config_values import STATUS_DOTS, STATUS_LABELS as ADMIN_STATUS_LABELS
 from app.models import ROLE_ADMIN, STATUS_LABELS, Inquiry, User
 from app.services.inquiries import (
     InquiryError,
@@ -9,6 +10,7 @@ from app.services.inquiries import (
     delete_by_employee,
     get_active_inquiry,
 )
+from app.services.waiting import admins_with_status
 
 employee_bp = Blueprint("employee", __name__, url_prefix="/me")
 
@@ -23,7 +25,14 @@ def _require_login():
 @employee_bp.route("/")
 def home():
     active = get_active_inquiry(current_user.id)
-    return render_template("employee/home.html", active=active, status_labels=STATUS_LABELS)
+    return render_template(
+        "employee/home.html",
+        active=active,
+        status_labels=STATUS_LABELS,
+        admin_rows=admins_with_status(),
+        admin_status_dots=STATUS_DOTS,
+        admin_status_labels=ADMIN_STATUS_LABELS,
+    )
 
 
 @employee_bp.route("/inquiries/new", methods=["GET", "POST"])
@@ -52,9 +61,19 @@ def new_inquiry():
 
         return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
 
-    admins = User.query.filter_by(role=ROLE_ADMIN).order_by(User.name).all()
+    selected_admin = None
+    admin_id = request.args.get("admin_id", type=int)
+    if admin_id:
+        selected_admin = User.query.filter_by(id=admin_id, role=ROLE_ADMIN).first()
+
     return render_template(
-        "employee/new_inquiry.html", active=active, admins=admins, status_labels=STATUS_LABELS
+        "employee/new_inquiry.html",
+        active=active,
+        selected_admin=selected_admin,
+        admin_rows=admins_with_status(),
+        status_labels=STATUS_LABELS,
+        admin_status_dots=STATUS_DOTS,
+        admin_status_labels=ADMIN_STATUS_LABELS,
     )
 
 

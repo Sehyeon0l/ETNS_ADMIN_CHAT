@@ -20,4 +20,18 @@
     <a href="{{ url_for('employee.new_inquiry') }}" class="btn-primary">새 문의 작성</a>
 </section>
 {% endif %}
+
+<section class="section">
+    <h2>관리자 정보</h2>
+    <div class="admin-list">
+    {% for row in admin_rows %}
+        <div class="admin-card status-{{ row.status }}">
+            <span class="admin-dot">{{ admin_status_dots[row.status] }}</span>
+            <span class="admin-name">{{ row.user.name }}</span>
+            <span class="admin-dept">{{ row.user.department }}</span>
+            <span class="admin-waiting">답변 대기 {{ row.waiting_count }}건</span>
+        </div>
+    {% endfor %}
+    </div>
+</section>
 {% endblock %}
