@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ inquiry.title }}{% endblock %}
+{% block content %}
+<div class="section-head">
+    <h1>{{ inquiry.title }}</h1>
+    <a href="{{ url_for('employee.home') }}" class="btn-secondary">내 문의로</a>
+</div>
+
+<dl class="kv inquiry-meta">
+    <dt>담당 관리자</dt><dd>{{ inquiry.admin.name }} ({{ inquiry.admin.department or '' }})</dd>
+    <dt>작성일</dt><dd>{{ inquiry.created_at.strftime('%Y-%m-%d') }}</dd>
+    <dt>상태</dt><dd><span class="badge badge-{{ inquiry.status }}">{{ status_labels[inquiry.status] }}</span></dd>
+    <dt>관리자 읽음</dt><dd>{{ '읽음' if inquiry.is_read else '읽지 않음' }}</dd>
+</dl>
+
+<div class="chat-thread">
+{% for m in inquiry.messages %}
+    <div class="chat-bubble {{ 'me' if m.sender_id == current_user.id else 'them' }}">
+        <span class="chat-sender">{{ '나' if m.sender_id == current_user.id else inquiry.admin.name }}</span>
+        <p class="chat-body">{{ m.content }}</p>
+        <span class="chat-time">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+    </div>
+{% endfor %}
+</div>
+
+{% if inquiry.status != 'CLOSED' %}
+<form class="chat-form" method="post" action="{{ url_for('employee.send_message', inquiry_id=inquiry.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="content" rows="3" placeholder="메시지를 입력하세요" required></textarea>
+    <button type="submit" class="btn-primary">전송</button>
+</form>
+{% else %}
+<p class="hint">종료된 문의입니다. 더 이상 메시지를 보낼 수 없습니다.</p>
+{% endif %}
+
+<section class="section delete-section">
+    {% if inquiry.can_employee_delete %}
+        <p class="hint">{{ '관리자 삭제 승인이 완료되었습니다.' if inquiry.is_read else '관리자가 아직 문의를 읽지 않았습니다.' }}</p>
+        <form method="post" action="{{ url_for('employee.delete_inquiry', inquiry_id=inquiry.id) }}"
+              onsubmit="return confirm('이 문의를 삭제하시겠습니까?\n\n삭제하면 현재 문의가 종료되며 다른 관리자에게 새로운 문의를 보낼 수 있습니다.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-danger">문의 삭제</button>
+        </form>
+    {% else %}
+        <p class="warn-banner">
+            관리자가 이미 확인한 문의입니다.<br>
+            현재 문의는 임직원이 직접 삭제할 수 없습니다. 삭제가 필요한 경우 관리자에게 삭제 승인을 요청해주세요.
+        </p>
+        <button type="button" class="btn-disabled" disabled>삭제 불가능</button>
+    {% endif %}
+</section>
+{% endblock %}

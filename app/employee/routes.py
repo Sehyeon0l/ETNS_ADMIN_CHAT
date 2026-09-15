@@ -1,0 +1,88 @@
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from app.models import ROLE_ADMIN, STATUS_LABELS, Inquiry, User
+from app.services.inquiries import (
+    InquiryError,
+    add_employee_message,
+    create_inquiry,
+    delete_by_employee,
+    get_active_inquiry,
+)
+
+employee_bp = Blueprint("employee", __name__, url_prefix="/me")
+
+
+@employee_bp.before_request
+@login_required
+def _require_login():
+    if current_user.is_admin:
+        abort(403)
+
+
+@employee_bp.route("/")
+def home():
+    active = get_active_inquiry(current_user.id)
+    return render_template("employee/home.html", active=active, status_labels=STATUS_LABELS)
+
+
+@employee_bp.route("/inquiries/new", methods=["GET", "POST"])
+def new_inquiry():
+    active = get_active_inquiry(current_user.id)
+
+    if request.method == "POST":
+        if active:
+            flash("현재 처리 중인 문의가 있어 새로운 문의를 보낼 수 없습니다.")
+            return redirect(url_for("employee.new_inquiry"))
+
+        admin_id = request.form.get("admin_id", type=int)
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        admin = User.query.filter_by(id=admin_id, role=ROLE_ADMIN).first()
+
+        if not admin or not title or not content:
+            flash("관리자, 제목, 문의 내용을 모두 입력해주세요.")
+            return redirect(url_for("employee.new_inquiry"))
+
+        try:
+            inquiry = create_inquiry(current_user, admin, title, content)
+        except InquiryError as e:
+            flash(str(e))
+            return redirect(url_for("employee.new_inquiry"))
+
+        return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
+
+    admins = User.query.filter_by(role=ROLE_ADMIN).order_by(User.name).all()
+    return render_template(
+        "employee/new_inquiry.html", active=active, admins=admins, status_labels=STATUS_LABELS
+    )
+
+
+@employee_bp.route("/inquiries/<int:inquiry_id>")
+def inquiry_detail(inquiry_id):
+    inquiry = Inquiry.query.filter_by(id=inquiry_id, employee_id=current_user.id, is_deleted=False).first_or_404()
+    return render_template("employee/inquiry_detail.html", inquiry=inquiry, status_labels=STATUS_LABELS)
+
+
+@employee_bp.route("/inquiries/<int:inquiry_id>/messages", methods=["POST"])
+def send_message(inquiry_id):
+    inquiry = Inquiry.query.filter_by(id=inquiry_id, employee_id=current_user.id, is_deleted=False).first_or_404()
+    content = request.form.get("content", "").strip()
+    if content:
+        try:
+            add_employee_message(inquiry, current_user, content)
+        except InquiryError as e:
+            flash(str(e))
+    return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))
+
+
+@employee_bp.route("/inquiries/<int:inquiry_id>/delete", methods=["POST"])
+def delete_inquiry(inquiry_id):
+    inquiry = Inquiry.query.filter_by(id=inquiry_id, employee_id=current_user.id, is_deleted=False).first_or_404()
+    try:
+        delete_by_employee(inquiry, current_user)
+        flash("문의가 삭제되었습니다. 이제 다른 관리자에게 새 문의를 보낼 수 있습니다.")
+        return redirect(url_for("employee.home"))
+    except InquiryError as e:
+        flash(str(e))
+        return redirect(url_for("employee.inquiry_detail", inquiry_id=inquiry.id))

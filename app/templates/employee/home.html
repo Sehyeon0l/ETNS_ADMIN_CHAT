@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}내 문의{% endblock %}
+{% block content %}
+<h1>안녕하세요, {{ current_user.name }}님</h1>
+
+{% if active %}
+<section class="section">
+    <h2>현재 문의</h2>
+    <dl class="kv">
+        <dt>담당 관리자</dt><dd>{{ active.admin.name }} ({{ active.admin.department or '' }})</dd>
+        <dt>제목</dt><dd>{{ active.title }}</dd>
+        <dt>상태</dt><dd><span class="badge badge-{{ active.status }}">{{ status_labels[active.status] }}</span></dd>
+        <dt>읽음 여부</dt><dd>{{ '읽음' if active.is_read else '읽지 않음' }}</dd>
+    </dl>
+    <a href="{{ url_for('employee.inquiry_detail', inquiry_id=active.id) }}" class="btn-primary">문의 확인</a>
+</section>
+{% else %}
+<section class="section">
+    <p class="empty">현재 진행 중인 문의가 없습니다.</p>
+    <a href="{{ url_for('employee.new_inquiry') }}" class="btn-primary">새 문의 작성</a>
+</section>
+{% endif %}
+{% endblock %}

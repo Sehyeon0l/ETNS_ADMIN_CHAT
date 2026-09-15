@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ inquiry.title }}{% endblock %}
+{% block content %}
+<div class="section-head">
+    <h1>{{ inquiry.title }}</h1>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">문의함으로</a>
+</div>
+
+<dl class="kv inquiry-meta">
+    <dt>임직원</dt><dd>{{ inquiry.employee.name }} ({{ inquiry.employee.employee_number }})</dd>
+    <dt>작성일</dt><dd>{{ inquiry.created_at.strftime('%Y-%m-%d') }}</dd>
+    <dt>상태</dt><dd><span class="badge badge-{{ inquiry.status }}">{{ status_labels[inquiry.status] }}</span></dd>
+    <dt>읽음</dt><dd>{{ '읽음' if inquiry.is_read else '읽지 않음' }}</dd>
+    <dt>삭제 승인</dt><dd>{{ '승인됨' if inquiry.delete_approved else '미승인' }}</dd>
+</dl>
+
+<div class="chat-thread">
+{% for m in inquiry.messages %}
+    <div class="chat-bubble {{ 'me' if m.sender_id == current_user.id else 'them' }}">
+        <span class="chat-sender">{{ '나' if m.sender_id == current_user.id else inquiry.employee.name }}</span>
+        <p class="chat-body">{{ m.content }}</p>
+        <span class="chat-time">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+    </div>
+{% endfor %}
+</div>
+
+{% if inquiry.status != 'CLOSED' %}
+<form class="chat-form" method="post" action="{{ url_for('admin.send_message', inquiry_id=inquiry.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="content" rows="3" placeholder="답변을 입력하세요" required></textarea>
+    <button type="submit" class="btn-primary">답변 작성</button>
+</form>
+{% else %}
+<p class="hint">종료된 문의입니다.</p>
+{% endif %}
+
+<section class="section admin-actions">
+    <h2>문의 처리</h2>
+    <div class="action-row">
+        {% if inquiry.is_deleted %}
+            <p class="hint">임직원이 삭제한 문의입니다 (삭제 이력).</p>
+        {% else %}
+            {% if inquiry.is_read and not inquiry.delete_approved %}
+            <form method="post" action="{{ url_for('admin.approve_delete_route', inquiry_id=inquiry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-secondary">삭제 승인</button>
+            </form>
+            {% elif inquiry.delete_approved %}
+            <span class="badge badge-ok">삭제 승인 완료</span>
+            {% else %}
+            <span class="hint">임직원이 아직 읽지 않은 문의라 삭제 승인이 필요하지 않습니다.</span>
+            {% endif %}
+
+            {% if inquiry.status != 'CLOSED' %}
+            <form method="post" action="{{ url_for('admin.close_inquiry_route', inquiry_id=inquiry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-secondary">문의 종료</button>
+            </form>
+            {% else %}
+            <span class="badge badge-CLOSED">종료됨</span>
+            {% endif %}
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
